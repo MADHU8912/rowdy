@@ -1,6 +1,6 @@
 {
   "name": "rowdy",
-  "version": "1.0.0",
+  "version": "1.0.1"
   "description": "Rowdy CI/CD demo project",
   "main": "src/app.js",
   "scripts": {
