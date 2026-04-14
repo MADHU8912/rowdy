@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         IMAGE_NAME = "nikhilabba12/rowdy"
-        IMAGE_TAG  = "2ef0d67288ea"
+        IMAGE_TAG = "${BUILD_NUMBER}"
     }
 
     stages {
@@ -15,14 +15,14 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                bat "docker build -t %nikhilabba12/rowdy%:%IMAGE_TAG% ."
-                bat "docker tag %nikhilabba12/rowdy%:%IMAGE_TAG% %nikhilabba12/rowdy%:latest"
+                bat "docker build -t %IMAGE_NAME%:%IMAGE_TAG% ."
+                bat "docker tag %IMAGE_NAME%:%IMAGE_TAG% %IMAGE_NAME%:latest"
             }
         }
 
         stage('Test') {
             steps {
-                bat "docker run --rm %nikhilabba12/rowdy%:%IMAGE_TAG% npm test"
+                bat "docker run --rm %IMAGE_NAME%:%IMAGE_TAG% npm test"
             }
         }
 
@@ -34,9 +34,16 @@ pipeline {
                     passwordVariable: 'DOCKER_PASS'
                 )]) {
                     bat '''
-                    echo %DOCKER_PASS% | docker login --username %nikhilabba12% --password-stdin dckr_pat_PUDz7mwrCIIl6rDWgTG59KIG3l0
-                    docker push %nikhilabba12/rowdy%:%IMAGE_TAG%sha256:7a4c8095bf17450933c36846fac0bf1d717b42dcf4c69dac33896fd6becec804
-                    docker push %nikhilabba12/rowdy%:latest
+                    echo ===== Docker Login =====
+                    echo %DOCKER_PASS% | docker login -u %DOCKER_USER% --password-stdin
+
+                    echo ===== Push Build Tag =====
+                    docker push %IMAGE_NAME%:%IMAGE_TAG%
+
+                    echo ===== Push Latest Tag =====
+                    docker push %IMAGE_NAME%:latest
+
+                    echo ===== Logout =====
                     docker logout
                     '''
                 }
