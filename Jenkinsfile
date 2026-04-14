@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         IMAGE_NAME = "nikhilabba12/rowdy"
-        IMAGE_TAG  = "${BUILD_NUMBER}"
+        IMAGE_TAG  = "${sha256:2ef0d67288ea6a05719428d4ad85dbd384cea9ed5ac8857cf13f4bc2a93e7ac1/latest}"
     }
 
     stages {
