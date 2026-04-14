@@ -9,7 +9,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/MADHU8912/rowdy.git'
+                checkout scm
             }
         }
 
@@ -34,9 +34,16 @@ pipeline {
                     passwordVariable: 'DOCKER_PASS'
                 )]) {
                     bat '''
-                    echo %DOCKER_PASS% | docker login --username %DOCKER_USER% --password-stdin
+                    echo ===== Docker Login =====
+                    echo %DOCKER_PASS% | docker login -u %DOCKER_USER% --password-stdin
+
+                    echo ===== Push Build Tag =====
                     docker push %IMAGE_NAME%:%IMAGE_TAG%
+
+                    echo ===== Push Latest Tag =====
                     docker push %IMAGE_NAME%:latest
+
+                    echo ===== Logout =====
                     docker logout
                     '''
                 }
@@ -50,6 +57,9 @@ pipeline {
         }
         failure {
             echo 'Rowdy pipeline failed.'
+        }
+        always {
+            bat 'docker images'
         }
     }
 }
