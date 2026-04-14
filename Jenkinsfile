@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         IMAGE_NAME = "nikhilabba12/rowdy"
-        IMAGE_TAG = "${BUILD_NUMBER}"
+        IMAGE_TAG  = "${BUILD_NUMBER}"
     }
 
     stages {
@@ -13,10 +13,24 @@ pipeline {
             }
         }
 
+        stage('Set Commit Tag') {
+            steps {
+                script {
+                    env.COMMIT_TAG = bat(
+                        script: "git rev-parse --short HEAD",
+                        returnStdout: true
+                    ).trim()
+                }
+            }
+        }
+
         stage('Build Docker Image') {
             steps {
-                bat "docker build -t %IMAGE_NAME%:%IMAGE_TAG% ."
-                bat "docker tag %IMAGE_NAME%:%IMAGE_TAG% %IMAGE_NAME%:latest"
+                bat """
+                docker build -t %IMAGE_NAME%:%IMAGE_TAG% .
+                docker tag %IMAGE_NAME%:%IMAGE_TAG% %IMAGE_NAME%:latest
+                docker tag %IMAGE_NAME%:%IMAGE_TAG% %IMAGE_NAME%:%COMMIT_TAG%
+                """
             }
         }
 
@@ -33,33 +47,15 @@ pipeline {
                     usernameVariable: 'DOCKER_USER',
                     passwordVariable: 'DOCKER_PASS'
                 )]) {
-                    bat '''
-                    echo ===== Docker Login =====
+                    bat """
                     echo %DOCKER_PASS% | docker login -u %DOCKER_USER% --password-stdin
-
-                    echo ===== Push Build Tag =====
                     docker push %IMAGE_NAME%:%IMAGE_TAG%
-
-                    echo ===== Push Latest Tag =====
                     docker push %IMAGE_NAME%:latest
-
-                    echo ===== Logout =====
+                    docker push %IMAGE_NAME%:%COMMIT_TAG%
                     docker logout
-                    '''
+                    """
                 }
             }
-        }
-    }
-
-    post {
-        success {
-            echo 'Rowdy pipeline completed successfully.'
-        }
-        failure {
-            echo 'Rowdy pipeline failed.'
-        }
-        always {
-            bat 'docker images'
         }
     }
 }
