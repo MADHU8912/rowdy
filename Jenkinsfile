@@ -3,11 +3,10 @@ pipeline {
 
     environment {
         IMAGE_NAME = "nikhilabba12/rowdy"
-        IMAGE_TAG  = "${sha256:2ef0d67288ea6a05719428d4ad85dbd384cea9ed5ac8857cf13f4bc2a93e7ac1/latest}"
+        IMAGE_TAG  = "2ef0d67288ea"
     }
 
     stages {
-
         stage('Checkout') {
             steps {
                 checkout scm
@@ -16,37 +15,8 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                bat """
-                docker build -t %IMAGE_NAME%:%IMAGE_TAG% .
-                docker tag %IMAGE_NAME%:%IMAGE_TAG% %IMAGE_NAME%:latest
-                """
-            }
-        }
-
-        // ✅ Get SHA256 Image ID
-        stage('Get Image SHA') {
-            steps {
-                script {
-                    env.IMAGE_ID = bat(
-                        script: "docker images --no-trunc -q %IMAGE_NAME%:%IMAGE_TAG%",
-                        returnStdout: true
-                    ).trim()
-
-                    // Remove sha256: and take short version
-                    env.SHORT_SHA = env.IMAGE_ID.replace("sha256:", "").substring(0,12)
-
-                    echo "Full SHA: ${env.IMAGE_ID}"
-                    echo "Short SHA: ${env.SHORT_SHA}"
-                }
-            }
-        }
-
-        // ✅ Tag using SHA
-        stage('Tag SHA Image') {
-            steps {
-                bat """
-                docker tag %IMAGE_NAME%:%IMAGE_TAG% %IMAGE_NAME%:%SHORT_SHA%
-                """
+                bat "docker build -t %IMAGE_NAME%:%IMAGE_TAG% ."
+                bat "docker tag %IMAGE_NAME%:%IMAGE_TAG% %IMAGE_NAME%:latest"
             }
         }
 
@@ -63,20 +33,12 @@ pipeline {
                     usernameVariable: 'DOCKER_USER',
                     passwordVariable: 'DOCKER_PASS'
                 )]) {
-                    bat """
-                    echo %DOCKER_PASS% | docker login -u %DOCKER_USER% --password-stdin
-
-                    echo === PUSH BUILD TAG ===
+                    bat '''
+                    echo %DOCKER_PASS% | docker login --username %DOCKER_USER% --password-stdin
                     docker push %IMAGE_NAME%:%IMAGE_TAG%
-
-                    echo === PUSH LATEST ===
                     docker push %IMAGE_NAME%:latest
-
-                    echo === PUSH SHA TAG ===
-                    docker push %IMAGE_NAME%:%SHORT_SHA%
-
                     docker logout
-                    """
+                    '''
                 }
             }
         }
