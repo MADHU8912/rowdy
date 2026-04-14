@@ -9,34 +9,44 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                checkout scm
+                git branch: 'main', url: 'https://github.com/MADHU8912/rowdy.git'
             }
         }
 
-        stage('Build') {
+        stage('Build Docker Image') {
             steps {
-                script {
-                    docker.build("${IMAGE_NAME}:${IMAGE_TAG}")
-                    bat "docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${IMAGE_NAME}:latest"
-                }
+                bat "docker build -t %IMAGE_NAME%:%IMAGE_TAG% ."
+                bat "docker tag %IMAGE_NAME%:%IMAGE_TAG% %IMAGE_NAME%:latest"
             }
         }
 
-        stage('Push') {
+        stage('Test') {
             steps {
-                script {
-                    docker.withRegistry('https://index.docker.io/v1/', 'docker-hub-creds') {
-                        bat "docker push ${IMAGE_NAME}:${IMAGE_TAG}"
-                        bat "docker push ${IMAGE_NAME}:latest"
-                    }
+                bat "docker run --rm %IMAGE_NAME%:%IMAGE_TAG% npm test"
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'nikhilabba12',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    bat "docker login -u %DOCKER_USER% -p %DOCKER_PASS%"
+                    bat "docker push %IMAGE_NAME%:%IMAGE_TAG%"
+                    bat "docker push %IMAGE_NAME%:latest"
                 }
             }
         }
     }
-}
-stage('Build Docker Image') {
-    steps {
-        bat "docker build -t nikhilabba12/rowdy:%BUILD_NUMBER% ."
-        bat "docker tag nikhilabba12/rowdy:%BUILD_NUMBER% nikhilabba12/rowdy:latest"
+
+    post {
+        success {
+            echo 'Rowdy pipeline completed successfully.'
+        }
+        failure {
+            echo 'Rowdy pipeline failed.'
+        }
     }
 }
